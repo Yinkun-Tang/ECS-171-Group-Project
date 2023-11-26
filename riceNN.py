@@ -86,13 +86,6 @@ for epochs in range(amount_epochs):
         result = model(input_val)
 
         # Back propagation with optimizer
-        '''
-        if epochs == amount_epochs - 1:
-            print("ADFGASFAE")
-            print(output_val.view(-1,1))
-            print(result)
-            print("ADFGASFAE")
-        '''
         # view transposes the output_val for comparison
         lossResult = loss(result, output_val.view(-1,1))
         lossResult.backward()
@@ -103,4 +96,22 @@ for epochs in range(amount_epochs):
         print(f'Epoch [{epochs+1}/{amount_epochs}], Loss: {lossResult.item():.4f}')
 
 
+# Comparison with test data
+test_data_loader = DataLoader(test_df, batch_size = 300, shuffle = True)
+
+for epochs in range(amount_epochs):
+    for input_val, output_val in test_data_loader:
+        optimize.zero_grad()
+        # Use the model with the input data, where result are the outputs.
+        result = model(input_val)
+
+        # Back propagation with optimizer
+        # view transposes the output_val for comparison
+        lossResult = loss(result, output_val.view(-1,1))
+        lossResult.backward()
+        optimize.step()
+
+    # Print progress
+    if (epochs + 1) % 100 == 0:
+        print(f'Epoch [{epochs+1}/{amount_epochs}], Loss: {lossResult.item():.4f}')
 
