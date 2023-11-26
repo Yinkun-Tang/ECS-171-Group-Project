@@ -3,6 +3,7 @@ import torch
 from torch import nn, optim
 from torch.utils.data import DataLoader, random_split, TensorDataset
 from sklearn.preprocessing import LabelEncoder
+from sklearn.preprocessing import MinMaxScaler
 
 
 # Basically is the program that we'll use to train the data
@@ -29,11 +30,10 @@ class NeuralNetwork(nn.Module):
         self.output = nn.Linear(hidden_layers[-1], 1).to(torch.float32)
         self.sigmoid = nn.Sigmoid()
     def forward(self, x):
-        x = self.input(x)
+        x = self.sigmoid(self.input(x))
         # Iterate through the hidden layer, where the Linear input (item) passes through the activation function Sigmoid
         for items in self.hidden:
             x = self.sigmoid(items(x))
-
         x = self.output(x)
         return x
 
@@ -46,6 +46,12 @@ df_output = df["Class"]
 # Apply label encoding
 label_encoder = LabelEncoder()
 df_output = label_encoder.fit_transform(df_output)
+
+# Min Max Scalar
+scale = MinMaxScaler(feature_range=(0, 1))
+input_rescale = scale.fit_transform(df_input)
+df_input = pd.DataFrame(data = input_rescale, columns = df_input.columns)
+
 
 # 
 inputTensor = torch.tensor(df_input.to_numpy(), dtype = torch.float32)
@@ -61,14 +67,14 @@ train_df, test_df = torch.utils.data.random_split(tensorDf, [train_amount, test_
 input_size = 7
 hidden_layer_size = [32, 128, 32]
 learning_rate = 0.1
-amount_epochs = 500
+amount_epochs = 1000
 
 # Create the model ()
 model = NeuralNetwork(input_size, hidden_layer_size)
 
 # Set up loss functions for backward propagation and optimizeers
 loss = nn.BCEWithLogitsLoss() 
-optimize = optim.SGD(model.parameters(), lr = learning_rate)
+optimize = optim.SGD(model.parameters(), lr = learning_rate, weight_decay=1e-5)
 
 # Batch SGD
 train_data_loader = DataLoader(train_df, batch_size = 300, shuffle = True)
