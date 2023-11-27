@@ -1,6 +1,9 @@
 import pandas as pd
 import torch
+import numpy as np
 from torch import nn, optim
+from skorch import NeuralNetClassifier
+from sklearn.model_selection import GridSearchCV
 from torch.utils.data import DataLoader, random_split, TensorDataset
 from sklearn.preprocessing import LabelEncoder
 from sklearn.preprocessing import MinMaxScaler
@@ -38,6 +41,7 @@ class NeuralNetwork(nn.Module):
         return x
 
 
+
 df = pd.read_csv("riceclass.csv")
 
 df_input = df.drop(["id", "Class"], axis = 1)
@@ -65,8 +69,8 @@ train_df, test_df = torch.utils.data.random_split(tensorDf, [train_amount, test_
 
 # Set up our Neural network variables
 input_size = 7
-hidden_layer_size = [32, 128, 32]
-learning_rate = 0.1
+hidden_layer_size = [12, 24, 48]
+learning_rate = 0.01
 amount_epochs = 1000
 
 # Create the model ()
@@ -74,9 +78,10 @@ model = NeuralNetwork(input_size, hidden_layer_size)
 
 # Set up loss functions for backward propagation and optimizeers
 loss = nn.BCEWithLogitsLoss() 
-optimize = optim.SGD(model.parameters(), lr = learning_rate, weight_decay=1e-5)
+optimize = optim.Adam(model.parameters(), lr = learning_rate)
 
 # Batch SGD
+
 train_data_loader = DataLoader(train_df, batch_size = 300, shuffle = True)
 
 for epochs in range(amount_epochs):
@@ -84,7 +89,6 @@ for epochs in range(amount_epochs):
         optimize.zero_grad()
         # Use the model with the input data, where result are the outputs.
         result = model(input_val)
-
         # Back propagation with optimizer
         # view transposes the output_val for comparison
         lossResult = loss(result, output_val.view(-1,1))
@@ -97,21 +101,45 @@ for epochs in range(amount_epochs):
 
 
 # Comparison with test data
+model.eval() # PyTorch  
 test_data_loader = DataLoader(test_df, batch_size = 300, shuffle = True)
 
-for epochs in range(amount_epochs):
-    for input_val, output_val in test_data_loader:
-        optimize.zero_grad()
-        # Use the model with the input data, where result are the outputs.
-        result = model(input_val)
+correct_ans = 0
+total_ans = 0
+for input_val, output_val in test_data_loader:
+    # Use the model with the input data, where result are the outputs.
+    result = model(input_val)
+    round_result = torch.round(torch.sigmoid(result)) # Rounds the answer so that it goes to 0 or 1 for MSE analysis
+    total_ans += output_val.view(-1,1).size(0)
+    # item() converts from torch to python integer
+    correct_ans += (round_result == output_val.view(-1,1)).sum().item()
+print("Accuracy: " + str(correct_ans/total_ans * 100))
 
-        # Back propagation with optimizer
-        # view transposes the output_val for comparison
-        lossResult = loss(result, output_val.view(-1,1))
-        lossResult.backward()
-        optimize.step()
 
-    # Print progress
-    if (epochs + 1) % 100 == 0:
-        print(f'Epoch [{epochs+1}/{amount_epochs}], Loss: {lossResult.item():.4f}')
+# Hypertuning
+# Using skorch as a wrapper to convert Pytorch to scikit-learn
 
+scikit_model = NeuralNetClassifier(
+    module=NeuralNetwork,
+    module__input_val = input_size,
+    max_epochs = 1000,
+    batch_size = 300,
+    criterion= nn.BCEWithLogitsLoss(),
+    iterator_train__shuffle=True
+
+)
+
+# The parameter that's getting hypertune (This project doesn't require the input layer to be hypertuned since the dataset assumes all parameters are necessary)
+
+param_grid = {
+    'optimizer': [optim.SGD, optim.Adam],
+    'optimizer__lr': [ 0.01, 0.001, 0.0001, 0.1],
+    'module__hidden_layers': [[128, 128, 128], [32, 32],[12,24,48], [7,7,7], [32, 128, 32]]
+}
+
+grid = GridSearchCV(estimator=scikit_model, param_grid=param_grid, cv=5, scoring ='accuracy', n_jobs = -1)
+# Convert the datatype for df_input and df_output to numpy float 32
+grid_result = grid.fit(df_input.to_numpy(dtype=np.float32), df_output.reshape(-1, 1).astype(np.float32))
+
+# The best parameters to use.
+print(str(grid_result.best_params_))
