@@ -1,6 +1,6 @@
 import pandas as pd
 import numpy as np
-
+from sklearn import metrics
 from sklearn.model_selection import GridSearchCV
 from sklearn.preprocessing import MinMaxScaler
 from sklearn.model_selection import train_test_split
@@ -21,7 +21,7 @@ df_input = pd.DataFrame(data = input_rescale, columns = df_input.columns)
 df_output = pd.get_dummies(df_output, dtype = int)
 
 input_train, input_test, output_train, output_test = train_test_split(df_input, df_output, test_size=0.2)
-mlp = MLPClassifier(solver = 'adam', random_state = 42, activation = 'logistic', learning_rate_init = 0.01, batch_size = 300, hidden_layer_sizes = (12, 24, 48,), max_iter = 1000)
+mlp = MLPClassifier(solver = 'sgd', random_state = 42, activation = 'logistic', learning_rate_init = 0.01, batch_size = 300, hidden_layer_sizes = (32, 32,), max_iter = 1000)
 mlp
 
 mlp.fit(input_train, output_train)
@@ -34,8 +34,18 @@ param_grid = dict(
     solver = ['sgd','adam'],
     hidden_layer_sizes = [(128, 128, 128,), (32, 32,),(12,24,48,), (12,3), (32, 128, 32,)]
 )
-print("Accuracy: ", accuracy_score(output_test, predict))
-print("Mean Square Error : ", mean_squared_error(output_test, predict))
+accuracy = metrics.accuracy_score(output_test, predict)
+precision = metrics.precision_score(output_test, predict, average='weighted')
+recall = metrics.recall_score(output_test, predict, average='weighted')
+
+print("Metrics before hyperparameter optimization:")
+print(f"Accuracy: {accuracy}")
+print(f"Precision: {precision}")
+print(f"Recall: {recall}")
+
+print("Confusion Matrix for each label : ")
+print(multilabel_confusion_matrix(output_test, predict))
+
 
 grid = GridSearchCV(estimator = mlp, param_grid = param_grid)
 grid.fit(input_train, output_train)
