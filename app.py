@@ -40,30 +40,18 @@ X_train_nn_scaled = scaler_nn.fit_transform(X_train)
 X_test_nn_scaled = scaler_nn.transform(X_test)
 
 
-# Encode labels for roc_curve
-label_encoder = LabelEncoder()
-y_test_encoded = label_encoder.fit_transform(y_test)
-
 # Logistic Regression
 logreg = LogisticRegression(max_iter=1000)
 logreg.fit(X_train_lr_scaled, y_train)
-logreg_probs = logreg.predict_proba(X_test_lr_scaled)[:, 1]
-fpr_lr, tpr_lr, _ = roc_curve(y_test_encoded, logreg_probs)
-roc_auc_lr = auc(fpr_lr, tpr_lr)
+
 
 # K-Nearest Neighbors
 knn = KNeighborsClassifier(n_neighbors=65)  # Assuming 65 is the best k value from your tuning
 knn.fit(X_train_knn_scaled, y_train)
-knn_probs = knn.predict_proba(X_test_knn_scaled)[:, 1]
-fpr_knn, tpr_knn, _ = roc_curve(y_test_encoded, knn_probs)
-roc_auc_knn = auc(fpr_knn, tpr_knn)
 
 # Neural Network
 mlp = MLPClassifier(solver = 'adam', random_state = 42, activation = 'logistic', learning_rate_init = 0.01, batch_size = 300, hidden_layer_sizes = (12, 24, 48,), max_iter = 1000)
 mlp.fit(X_train_nn_scaled, y_train)
-nn_probs = mlp.predict_proba(X_test_nn_scaled)[:, 1]
-fpr_nn, tpr_nn, _ = roc_curve(y_test_encoded, nn_probs)
-roc_auc_nn = auc(fpr_nn, tpr_nn)
 
 
 
@@ -78,10 +66,12 @@ eccentricity = st.text_input('Eccentricity')
 convex_area = st.slider('Convex Area', 0,20000)
 extent = st.text_input('Extent')
 
-obs = np.array([area, perimeter, major_axis, minor_axis, eccentricity, convex_area, extent])
-obs = pd.DataFrame([obs])
 
 def gui_predict():
+    obs = [int(area), float(perimeter), float(major_axis), float(minor_axis), float(eccentricity), int(convex_area), float(extent)]
+    obs = pd.DataFrame([obs])
+    X_train_obs_scaled = scaler_nn.transform(obs)
+    obs = pd.DataFrame(data = X_train_obs_scaled)
     st.success('Logistic Regression predicted ' + logreg.predict(obs) + ', K-Nearest Neighbors predicted ' + knn.predict(obs) + ', and Neural Network predicted ' + mlp.predict(obs))
 
 st.button('Predict', on_click=gui_predict)
