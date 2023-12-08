@@ -8,9 +8,9 @@ To run the Neural network application, the user types the following into the com
 python riceNNsklearn.py
 ```
 
-# How to run .ipynb file (K-Nearest Neighbor & Logistic Regression & Algorithm Comparison)
+# How to run .ipynb file
 
-To see the result and verify the procedure of algorithms with .ipynb file, please run each code block in order using Jupyter Notebook or VS code.
+To see the result and verify the procedure of algorithms (K-Nearest Neighbor & Logistic Regression & Algorithm Comparison) with .ipynb file, please run each code block in order using Jupyter Notebook or VS code.
 
 # How to run Front Dev Application
 
