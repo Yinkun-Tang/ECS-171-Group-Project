@@ -1,5 +1,12 @@
 # Rice Detection Neural Network
 
+# How to run Neural Network Application
+
+To run the Neural network application, the user types the following into the command prompt
+
+```
+python riceNNsklearn.py
+```
 
 # How to run Front Dev Application
 
